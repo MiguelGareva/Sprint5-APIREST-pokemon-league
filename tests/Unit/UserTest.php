@@ -37,6 +37,17 @@ class UserTest extends TestCase{
     /** @test */
     public function testAdminUserCanExistWithoutTrainer(){
 
+        Role::create(['name' =>'admin']);
+        Role::create(['name' => 'trainer']);
 
+        $adminUser = User::factory()->create();
+        $adminUser->assignRole('admin');
+
+        $trainerUser = User::factory()->create();
+        $trainerUser->assignRole('trainer');
+        Trainer::factory()->create(['user_id' => $trainerUser->id]);
+
+        $this->assertNull($adminUser->trainer);
+        $this->assertInstanceOf(Trainer::class, $trainerUser->trainer);
     }
 }
