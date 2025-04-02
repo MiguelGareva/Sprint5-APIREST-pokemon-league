@@ -34,5 +34,23 @@ class TrainerTest extends TestCase{
         $this->assertCount(2, $trainer->pokemons);
      }
     
-    
+    /** @test */
+    public function testTrainerCanHaveMaximumOfThreePokemons(){
+
+        $trainer = Trainer::factory()->create();
+
+        // Add 3 pokemons (maximum allowed)
+        Pokemon::factory()->count(3)->create(['trainer_id' => $trainer->id]);
+
+        $this->assertCount(3, $trainer->pokemons);
+        $this->assertTrue($trainer->canAddMorePOkemons() === false);
+
+        //Try to add a 4th pokemon
+        $extraPokemon = Pokemon::factory()->create();
+        $result = $trainer->addPokemon($extraPokemon);
+
+        //Should fail and not be added
+        $this->assertFalse($result);
+        $this->assertCount(3, $trainer->fresh()->pokemons);
+    }
 }
