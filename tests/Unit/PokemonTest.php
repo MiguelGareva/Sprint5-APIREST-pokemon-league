@@ -20,4 +20,14 @@ class PokemonTest extends TestCase{
         $this->assertInstanceOf(Trainer::class, $pokemon->trainer);
         $this->assertEquals($trainer->id, $pokemon->trainer->id);
     }
+
+    /** @test */
+    public function testPokemonCanExistsWithoutTrainer(){
+
+        $pokemon = Pokemon::factory()->create(['trainer_id' => null]);
+
+        $this->assertNull($pokemon->trainer);
+    }
+
+    /** @test */
 }
