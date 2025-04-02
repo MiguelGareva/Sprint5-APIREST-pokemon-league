@@ -22,4 +22,21 @@ class UserTest extends TestCase{
         $this->assertInstanceOf(Trainer::class, $user->trainer);
         $this->assertEquals($trainer->id, $user->trainer->id);
     }
+
+    /** @test */
+    public function testUserCanHaveRoles(){
+
+        Role::create(['name' => 'admin']);
+        $user = User::factory()->create();
+        $user->assignRole('admin');
+
+        $this->assertTrue($user->hasRole('admin'));
+
+    }
+
+    /** @test */
+    public function testAdminUserCanExistWithoutTrainer(){
+
+
+    }
 }
