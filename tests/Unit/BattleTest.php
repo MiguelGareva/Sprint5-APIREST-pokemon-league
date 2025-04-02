@@ -43,4 +43,19 @@ class BattleTest extends TestCase{
         $this->assertInstanceOf(Trainer::class, $battle->winner);
         $this->assertEquals($trainer1->id, $battle->winner->id);
     }
+
+    /** @test */
+    public function testBattleCanBeADraw(){
+
+        $trainer1 = Trainer::factory()->create();
+        $trainer2 = Trainer::factory()->create();
+
+        $battle = Battle::factory()->create([
+            'trainer1_id' => $trainer1->id,
+            'trainer2_id' => $trainer2->id,
+            'winner_id' => null
+        ]);
+
+        $this->assertNull($battle->winner);
+    }
 }
