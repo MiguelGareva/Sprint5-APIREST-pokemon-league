@@ -30,4 +30,19 @@ class PokemonTest extends TestCase{
     }
 
     /** @test */
+    public function testPokemonHasStats(){
+
+        $stats = [
+            'hp' => 50,
+            'attack' => 55,
+            'defense' => 40,
+            'special_attack' => 50,
+            'special_defense' => 50,
+            'speed' => 55
+        ];
+
+        $pokemon = Pokemon::factory()->create(['stats' => json_encode($stats)]);
+
+        $this->assertEquals($stats, json_decode($pokemon->stats, true));
+    }
 }
