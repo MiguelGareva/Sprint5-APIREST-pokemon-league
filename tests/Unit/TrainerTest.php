@@ -53,4 +53,21 @@ class TrainerTest extends TestCase{
         $this->assertFalse($result);
         $this->assertCount(3, $trainer->fresh()->pokemons);
     }
+
+    /** @test */
+    public function testTrainerCanParticipateInBattles(){
+
+        $trainer1 = Trainer::factory()->create();
+        $trainer2 = Trainer::factory()->create();
+
+        $batlle = Battle::factory()->create([
+            'trainer1_id' => $trainer1->id,
+            'trainer2_id' => $trainer2->id,
+        ]);
+
+        $this->assertInstanceOf(Battle::class, $trainer1->battleAsTrainer1->first());
+        $this->assertInstanceOf(Battle::class, $trainer2->battleAsTrainer2->first());
+        $this->assertCount(1, $trainer1->battles());
+        $this->assertCount(1, $trainer2->battles());
+    }
 }
