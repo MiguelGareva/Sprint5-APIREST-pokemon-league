@@ -21,6 +21,11 @@ class Trainer extends Model
     ];
 
     /**
+     * Maximum number of pokemons a trainer can have.
+     */
+    public const MAX_POKEMONS = 3;
+
+    /**
      * Get the user that owns the trainer.
      */
     public function user()
@@ -66,5 +71,33 @@ class Trainer extends Model
     public function battles()
     {
         return $this->battlesAsTrainer1->concat($this->battlesAsTrainer2);
+    }
+    
+    /**
+     * Check if the trainer can add more pokemons.
+     *
+     * @return bool
+     */
+    public function canAddMorePokemons(): bool
+    {
+        return $this->pokemons()->count() < self::MAX_POKEMONS;
+    }
+    
+    /**
+     * Add a pokemon to the trainer if possible.
+     *
+     * @param \App\Models\Pokemon $pokemon
+     * @return bool
+     */
+    public function addPokemon(Pokemon $pokemon): bool
+    {
+        if (!$this->canAddMorePokemons()) {
+            return false;
+        }
+        
+        $pokemon->trainer()->associate($this);
+        $pokemon->save();
+        
+        return true;
     }
 }
