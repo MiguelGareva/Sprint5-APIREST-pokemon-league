@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\Trainer;
 use App\Models\User;
 use App\Services\AuthService;
@@ -34,22 +36,11 @@ class AuthController extends Controller
     /**
      * Register a new user
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\RegisterRequest  $request
      * @return \Illuminate\Http\Response
      */
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50',
-            'email' => 'required|string|email|max:60|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'sometimes|string|in:admin,trainer,guest',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
         $result = $this->authService->register($request->all());
         $user = $result['user'];
         $token = $result['token'];
@@ -64,21 +55,13 @@ class AuthController extends Controller
     /**
      * Login user and create token
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\LoginRequest  $request
      * @return \Illuminate\Http\Response
      */
     public function login(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'email' => 'required|string|email',
-                'password' => 'required|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json($validator->errors(), 422);
-            }
-
+            
             $credentials = $request->only('email', 'password');
 
             if (!Auth::attempt($credentials)) {
