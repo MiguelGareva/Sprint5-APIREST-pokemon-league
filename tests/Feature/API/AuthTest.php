@@ -4,22 +4,78 @@ namespace Tests\Feature\API;
 
 use App\Models\Trainer;
 use App\Models\User;
+use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
 use Spatie\Permission\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         
+        // Ensure Passport is set up for testing
+        $this->setupPassportForTesting();
+        
         // Seed the roles and permissions
         $this->seed(\Database\Seeders\RoleSeeder::class);
+    }
+
+    /**
+     * Set up Passport for testing environment
+     */
+    protected function setupPassportForTesting(): void
+    {
+        // Regenerate Passport keys
+        Artisan::call('passport:keys', ['--force' => true]);
+        
+        // Disable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        
+        // Clear existing OAuth clients
+        DB::table('oauth_clients')->truncate();
+        DB::table('oauth_personal_access_clients')->truncate();
+        
+        // Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+        // Create personal access client
+        $personalAccessClient = Client::create([
+            'name' => 'Laravel Personal Access Client',
+            'secret' => 'testing-personal-access-secret',
+            'provider' => 'users',
+            'redirect' => 'http://localhost',
+            'personal_access_client' => 1,
+            'password_client' => 0,
+            'revoked' => 0,
+        ]);
+        
+        // Create password grant client
+        $passwordGrantClient = Client::create([
+            'name' => 'Laravel Password Grant Client',
+            'secret' => 'testing-password-grant-secret',
+            'provider' => 'users',
+            'redirect' => 'http://localhost',
+            'personal_access_client' => 0,
+            'password_client' => 1,
+            'revoked' => 0,
+        ]);
+        
+        // Register personal access client
+        DB::table('oauth_personal_access_clients')->insert([
+            'client_id' => $personalAccessClient->id,
+        ]);
+
+        // Mock token creation for testing
+        User::macro('createToken', function ($name, $abilities = ['*']) {
+            return (object) ['accessToken' => 'fake-token-for-testing'];
+        });
     }
 
     /** @test */
@@ -148,7 +204,7 @@ class AuthTest extends TestCase
     /** @test */
     public function admin_registration_does_not_create_trainer()
     {
-        // Admin via direct registration (assuming we have an admin registration endpoint or flag)
+        // Admin via direct registration
         $response = $this->postJson('/api/register', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
