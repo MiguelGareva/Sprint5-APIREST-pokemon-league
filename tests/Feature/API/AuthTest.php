@@ -24,7 +24,7 @@ class AuthTest extends TestCase
         $this->setupPassportForTesting();
         
         // Seed the roles and permissions
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
     }
 
     /**
