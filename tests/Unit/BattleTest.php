@@ -56,7 +56,6 @@ class BattleTest extends TestCase{
         $this->assertNull($battle->winner);
     }
 
-    /** @test */
     public function testBattleHasDate(){
 
         $battle = Battle::factory()->create([
