@@ -11,7 +11,6 @@ class PokemonTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
     public function testPokemonCanBelongToTrainer()
     {
         $trainer = Trainer::factory()->create();
@@ -21,7 +20,6 @@ class PokemonTest extends TestCase
         $this->assertEquals($trainer->id, $pokemon->trainer->id);
     }
 
-    /** @test */
     public function testPokemonCanExistWithoutTrainer()
     {
         $pokemon = Pokemon::factory()->create(['trainer_id' => null]);
@@ -29,7 +27,6 @@ class PokemonTest extends TestCase
         $this->assertNull($pokemon->trainer);
     }
 
-    /** @test */
     public function testPokemonHasStats()
     {
         $stats = [

@@ -11,7 +11,6 @@ class BattleTest extends TestCase{
 
     use RefreshDatabase;
 
-    /** @test */
     public function testBattleBelongsToTwoTrainers(){
 
         $trainer1 = Trainer::factory()->create();
@@ -28,7 +27,6 @@ class BattleTest extends TestCase{
         $this->assertEquals($trainer2->id, $battle->trainer2->id);
     }
 
-    /** @test */
     public function testBattleHasWinner(){
 
         $trainer1 = Trainer::factory()->create();
@@ -44,7 +42,6 @@ class BattleTest extends TestCase{
         $this->assertEquals($trainer1->id, $battle->winner->id);
     }
 
-    /** @test */
     public function testBattleCanBeADraw(){
 
         $trainer1 = Trainer::factory()->create();

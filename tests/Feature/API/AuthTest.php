@@ -78,7 +78,6 @@ class AuthTest extends TestCase
         });
     }
 
-    /** @test */
     public function a_user_can_register()
     {
         $response = $this->postJson('/api/register', [
@@ -117,7 +116,6 @@ class AuthTest extends TestCase
         ]);
     }
 
-    /** @test */
     public function a_user_cannot_register_with_invalid_data()
     {
         $response = $this->postJson('/api/register', [
@@ -131,7 +129,6 @@ class AuthTest extends TestCase
                  ->assertJsonValidationErrors(['name', 'email', 'password']);
     }
 
-    /** @test */
     public function a_user_can_login()
     {
         $user = User::factory()->create([
@@ -166,7 +163,6 @@ class AuthTest extends TestCase
                  ]);
     }
 
-    /** @test */
     public function a_user_cannot_login_with_invalid_credentials()
     {
         $user = User::factory()->create([
@@ -185,7 +181,6 @@ class AuthTest extends TestCase
                  ]);
     }
 
-    /** @test */
     public function a_user_can_logout()
     {
         $user = User::factory()->create();
@@ -201,7 +196,6 @@ class AuthTest extends TestCase
                  ]);
     }
     
-    /** @test */
     public function admin_registration_does_not_create_trainer()
     {
         // Admin via direct registration
@@ -224,7 +218,6 @@ class AuthTest extends TestCase
         ]);
     }
     
-    /** @test */
     public function trainer_role_has_necessary_permissions()
     {
         $user = User::factory()->create();
