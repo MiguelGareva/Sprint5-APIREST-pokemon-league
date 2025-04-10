@@ -78,8 +78,7 @@ class AuthTest extends TestCase
         });
     }
 
-    /** @test */
-    public function a_user_can_register()
+    public function test_a_user_can_register()
     {
         $response = $this->postJson('/api/register', [
             'name' => 'Test User',
@@ -117,8 +116,7 @@ class AuthTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function a_user_cannot_register_with_invalid_data()
+    public function test_a_user_cannot_register_with_invalid_data()
     {
         $response = $this->postJson('/api/register', [
             'name' => '',
@@ -131,8 +129,7 @@ class AuthTest extends TestCase
                  ->assertJsonValidationErrors(['name', 'email', 'password']);
     }
 
-    /** @test */
-    public function a_user_can_login()
+    public function test_a_user_can_login()
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
@@ -166,8 +163,7 @@ class AuthTest extends TestCase
                  ]);
     }
 
-    /** @test */
-    public function a_user_cannot_login_with_invalid_credentials()
+    public function test_a_user_cannot_login_with_invalid_credentials()
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
@@ -185,8 +181,7 @@ class AuthTest extends TestCase
                  ]);
     }
 
-    /** @test */
-    public function a_user_can_logout()
+    public function test_a_user_can_logout()
     {
         $user = User::factory()->create();
         $user->assignRole('trainer');
@@ -201,8 +196,7 @@ class AuthTest extends TestCase
                  ]);
     }
     
-    /** @test */
-    public function admin_registration_does_not_create_trainer()
+    public function test_admin_registration_does_not_create_trainer()
     {
         // Admin via direct registration
         $response = $this->postJson('/api/register', [
@@ -224,8 +218,7 @@ class AuthTest extends TestCase
         ]);
     }
     
-    /** @test */
-    public function trainer_role_has_necessary_permissions()
+    public function test_trainer_role_has_necessary_permissions()
     {
         $user = User::factory()->create();
         $user->assignRole('trainer');

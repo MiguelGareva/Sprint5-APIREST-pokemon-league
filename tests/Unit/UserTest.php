@@ -13,7 +13,7 @@ class UserTest extends TestCase{
 
     use RefreshDatabase;
 
-    /** @test */
+    
     public function testUserCanHaveATrainer(){
 
         $user = User::factory()->create();
@@ -23,7 +23,7 @@ class UserTest extends TestCase{
         $this->assertEquals($trainer->id, $user->trainer->id);
     }
 
-    /** @test */
+    
     public function testUserCanHaveRoles(){
 
         Role::create(['name' => 'admin']);
@@ -34,7 +34,6 @@ class UserTest extends TestCase{
 
     }
 
-    /** @test */
     public function testAdminUserCanExistWithoutTrainer(){
 
         Role::create(['name' =>'admin']);

@@ -13,7 +13,6 @@ class TrainerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
     public function testTrainerBelongsToUser()
     {
         $user = User::factory()->create();
@@ -23,7 +22,6 @@ class TrainerTest extends TestCase
         $this->assertEquals($user->id, $trainer->user->id);
     }
 
-    /** @test */
     public function testTrainerCanHavePokemons()
     {
         $trainer = Trainer::factory()->create();
@@ -34,7 +32,6 @@ class TrainerTest extends TestCase
         $this->assertCount(2, $trainer->pokemons);
     }
     
-    /** @test */
     public function testTrainerCanHaveMaximumOfThreePokemons()
     {
         $trainer = Trainer::factory()->create();
@@ -54,7 +51,6 @@ class TrainerTest extends TestCase
         $this->assertCount(3, $trainer->fresh()->pokemons);
     }
 
-    /** @test */
     public function testTrainerCanParticipateInBattles()
     {
         $trainer1 = Trainer::factory()->create();
