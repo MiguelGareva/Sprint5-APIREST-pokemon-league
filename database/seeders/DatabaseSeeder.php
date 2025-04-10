@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(PassportSeeder::class);
 
-        $this->call(RoleSeeder::class);
+        $this->call(RolePermissionSeeder::class);
+        
+        $this->call(PokemonSeeder::class);
     }
 }
