@@ -33,7 +33,7 @@ class RolePermissionTest extends TestCase
 
         //Check if specific permissions exist
         $this->assertDatabaseHas('permissions', ['name' => 'trainers.view']);
-        $this->assertDatabaseHas('permissions', ['name' => 'traines.create']);
+        $this->assertDatabaseHas('permissions', ['name' => 'trainers.create']);
         $this->assertDatabaseHas('permissions', ['name' => 'trainers.update']);
         $this->assertDatabaseHas('permissions', ['name' => 'trainers.delete']);
         $this->assertDatabaseHas('permissions', ['name' => 'pokemons.view']);
