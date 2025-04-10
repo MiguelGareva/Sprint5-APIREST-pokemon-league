@@ -11,11 +11,7 @@ use Database\Seeders\RolePermissionSeeder;
 class RolePermissionTest extends TestCase
 {
     use RefreshDatabase;
-    /**
-     * Test if roles are created correctly.
-     * 
-     * @return void
-     */
+    
     public function test_roles_are_created()
     {
         //Run the Seeder
@@ -30,11 +26,7 @@ class RolePermissionTest extends TestCase
         $this->assertEquals(3, Role::count());
     }
 
-    /**
-     * Test if all permissions are created correctly.
-     * 
-     * @return void
-     */
+    
     public function test_permissions_are_created(){
         //Run the Seeder
         $this->seed(RolePermissionSeeder::class);
@@ -55,11 +47,7 @@ class RolePermissionTest extends TestCase
         //Check if the number of permissions is correct
         $this->assertEquals(11, Permission::count());
     }
-    /**
-     * Test if permissions are correctly assigned to roles
-     * 
-     * @return void
-     */
+    
     public function test_roles_have_correct_permissions(){
         //Run the seeder
         $this->seed(RolePermissionSeeder::class);
