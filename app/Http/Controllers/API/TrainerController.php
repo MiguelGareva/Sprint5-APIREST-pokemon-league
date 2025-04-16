@@ -14,10 +14,7 @@ class TrainerController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('permission:trainers.view')->only(['index', 'show']);
-        $this->middleware('permission:trainers.create')->only(['store']);
-        $this->middleware('permission:trainers.update')->only(['update']);
-        $this->middleware('permission:trainers.delete')->only(['destroy']);
+        
     }
 
     /**
@@ -37,7 +34,16 @@ class TrainerController extends Controller
      */
     public function store(TrainerRequest $request)
     {
-        $trainer = Trainer::create($request->validated());
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $data = $request->validated();
+        if (!isset($data['points'])) {
+            $data['points'] = 0;
+        }
+        
+        $trainer = Trainer::create($data);
 
         return response()->json([
             'data' => $trainer
