@@ -10,16 +10,6 @@ use Illuminate\Http\Request;
 
 class PokemonController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     */
-    public function __construct()
-    {
-        $this->middleware('permission:pokemons.view')->only(['index', 'show', 'available']);
-        $this->middleware('permission:pokemons.create')->only(['store']);
-        $this->middleware('permission:pokemons.update')->only(['update', 'assignToTrainer', 'releaseFromTrainer']);
-        $this->middleware('permission:pokemons.delete')->only(['destroy']);
-    }
 
     /**
      * Display a listing of pokemons with optional filters.
