@@ -20,7 +20,7 @@ class TrainerRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:60',
             'user_id' => 'required|exists:users,id',
         ];
 
