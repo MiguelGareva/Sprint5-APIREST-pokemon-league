@@ -20,8 +20,8 @@ class PokemonRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'name' => 'required|string|max:255',
-            'type' => 'required|string|max:255',
+            'name' => 'required|string|max:30',
+            'type' => 'required|string|max:30',
             'level' => 'required|integer|min:1|max:100',
             'stats' => 'required|array',
             'trainer_id' => 'nullable|exists:trainers,id',
@@ -29,8 +29,8 @@ class PokemonRequest extends FormRequest
 
         // If updating, make most fields optional
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $rules['name'] = 'sometimes|string|max:255';
-            $rules['type'] = 'sometimes|string|max:255';
+            $rules['name'] = 'sometimes|string|max:30';
+            $rules['type'] = 'sometimes|string|max:25';
             $rules['stats'] = 'sometimes|array';
         }
 
