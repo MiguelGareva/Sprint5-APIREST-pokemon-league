@@ -179,7 +179,7 @@ class BattleTest extends TestCase
         ]);
         
         // Update winner's points
-        $trainer1->increment('points', 10);
+        $trainer1->increment('points', 3);
         
         // Record the points before deletion
         $pointsBefore = $trainer1->fresh()->points;
@@ -198,6 +198,6 @@ class BattleTest extends TestCase
         
         // Assert winner's points were reverted
         $pointsAfter = $trainer1->fresh()->points;
-        $this->assertEquals($pointsBefore - 10, $pointsAfter);
+        $this->assertEquals($pointsBefore - 3, $pointsAfter);
     }
 }
