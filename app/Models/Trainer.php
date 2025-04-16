@@ -19,6 +19,14 @@ class Trainer extends Model
         'name',
         'points',
     ];
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'points' => 0, // Valor predeterminado para points
+    ];
 
     /**
      * Maximum number of pokemons a trainer can have.
