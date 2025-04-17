@@ -5,16 +5,27 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TrainerRequest;
 use App\Models\Trainer;
+use App\Services\RankingService;
 use Illuminate\Http\Request;
 
 class TrainerController extends Controller
 {
     /**
-     * Create a new controller instance.
+     * The ranking service instance.
+     *
+     * @var \App\Services\RankingService
      */
-    public function __construct()
+    protected $rankingService;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @param \App\Services\RankingService $rankingService
+     * @return void
+     */
+    public function __construct(RankingService $rankingService)
     {
-        
+        $this->rankingService = $rankingService;
     }
 
     /**
@@ -57,8 +68,12 @@ class TrainerController extends Controller
     {
         $trainer->load('pokemons');
 
+        // Get the trainer's rank in the global ranking
+        $rank = $this->rankingService->getTrainerRank($trainer);
+
         return response()->json([
-            'data' => $trainer
+            'data' => $trainer,
+            'rank' => $rank
         ]);
     }
 
@@ -91,10 +106,74 @@ class TrainerController extends Controller
      */
     public function ranking()
     {
-        $ranking = Trainer::orderBy('points', 'desc')->get(['id', 'name', 'points']);
+        $ranking = $this->rankingService->getFullRanking();
 
         return response()->json([
             'data' => $ranking
+        ]);
+    }
+
+    /**
+     * Display top N trainers.
+     * 
+     * @param int $count Number of top trainers to retrieve
+     */
+    public function topTrainers($count = 10)
+    {
+        $count = min(50, max(1, (int)$count)); // Limit between 1 and 50
+        $topTrainers = $this->rankingService->getTopTrainers($count);
+
+        return response()->json([
+            'data' => $topTrainers
+        ]);
+    }
+
+    /**
+     * Get trainers with similar points to the specified trainer.
+     */
+    public function similarTrainers(Trainer $trainer, $range = 30)
+    {
+        $range = min(100, max(1, (int)$range)); // Limit between 1 and 100
+        $similarTrainers = $this->rankingService->getTrainersWithSimilarPoints($trainer, $range);
+
+        return response()->json([
+            'data' => $similarTrainers
+        ]);
+    }
+
+    /**
+     * Get monthly ranking statistics.
+     */
+    public function monthlyStats()
+    {
+        $stats = $this->rankingService->getMonthlyStats();
+
+        return response()->json([
+            'data' => $stats
+        ]);
+    }
+
+    /**
+     * Update trainer points (admin only).
+     */
+    public function updatePoints(Request $request, Trainer $trainer)
+    {
+        // Check if user is admin
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Validate request
+        $validated = $request->validate([
+            'points_change' => 'required|integer',
+        ]);
+
+        // Update trainer points
+        $this->rankingService->updateTrainerPoints($trainer, $validated['points_change']);
+
+        return response()->json([
+            'message' => 'Trainer points updated successfully',
+            'trainer' => $trainer->fresh()
         ]);
     }
 }

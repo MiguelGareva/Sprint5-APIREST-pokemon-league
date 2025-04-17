@@ -2,14 +2,34 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Exceptions\PokemonAssignmentException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PokemonRequest;
 use App\Models\Pokemon;
 use App\Models\Trainer;
+use App\Services\PokemonAssignmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PokemonController extends Controller
 {
+    /**
+     * The pokemon assignment service instance.
+     *
+     * @var \App\Services\PokemonAssignmentService
+     */
+    protected $pokemonAssignmentService;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @param \App\Services\PokemonAssignmentService $pokemonAssignmentService
+     * @return void
+     */
+    public function __construct(PokemonAssignmentService $pokemonAssignmentService)
+    {
+        $this->pokemonAssignmentService = $pokemonAssignmentService;
+    }
 
     /**
      * Display a listing of pokemons with optional filters.
@@ -49,7 +69,7 @@ class PokemonController extends Controller
      */
     public function available()
     {
-        $pokemons = Pokemon::whereNull('trainer_id')->get();
+        $pokemons = $this->pokemonAssignmentService->getAvailablePokemons();
 
         return response()->json([
             'data' => $pokemons
@@ -109,27 +129,23 @@ class PokemonController extends Controller
      */
     public function assignToTrainer(Pokemon $pokemon, Trainer $trainer)
     {
-        // Check if the trainer can add more pokemons
-        if (!$trainer->canAddMorePokemons()) {
+        try {
+            $this->pokemonAssignmentService->assignPokemon($pokemon, $trainer);
+            
             return response()->json([
-                'message' => 'Trainer has reached the maximum number of pokemons'
-            ], 400);
-        }
-
-        // Check if pokemon is already assigned to another trainer
-        if ($pokemon->trainer_id !== null && $pokemon->trainer_id !== $trainer->id) {
+                'message' => 'Pokemon assigned to trainer successfully'
+            ]);
+        } catch (PokemonAssignmentException $e) {
             return response()->json([
-                'message' => 'Pokemon is already assigned to another trainer'
+                'message' => $e->getMessage()
             ], 400);
+        } catch (\Exception $e) {
+            Log::error('Failed to assign pokemon: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Failed to assign pokemon'
+            ], 500);
         }
-
-        // Assign pokemon to trainer
-        $pokemon->trainer()->associate($trainer);
-        $pokemon->save();
-
-        return response()->json([
-            'message' => 'Pokemon assigned to trainer successfully'
-        ]);
     }
 
     /**
@@ -137,19 +153,54 @@ class PokemonController extends Controller
      */
     public function releaseFromTrainer(Pokemon $pokemon, Trainer $trainer)
     {
-        // Check if pokemon is assigned to the specified trainer
-        if ($pokemon->trainer_id !== $trainer->id) {
+        try {
+            // Check if pokemon is assigned to the specified trainer
+            if ($pokemon->trainer_id !== $trainer->id) {
+                return response()->json([
+                    'message' => 'Pokemon is not assigned to this trainer'
+                ], 400);
+            }
+            
+            $this->pokemonAssignmentService->releasePokemon($pokemon);
+            
             return response()->json([
-                'message' => 'Pokemon is not assigned to this trainer'
+                'message' => 'Pokemon released successfully'
+            ]);
+        } catch (PokemonAssignmentException $e) {
+            return response()->json([
+                'message' => $e->getMessage()
             ], 400);
+        } catch (\Exception $e) {
+            Log::error('Failed to release pokemon: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Failed to release pokemon'
+            ], 500);
         }
+    }
 
-        // Release pokemon
-        $pokemon->trainer()->dissociate();
-        $pokemon->save();
-
-        return response()->json([
-            'message' => 'Pokemon released successfully'
-        ]);
+    /**
+     * Transfer pokemon from one trainer to another.
+     */
+    public function transferPokemon(Pokemon $pokemon, Trainer $newTrainer)
+    {
+        try {
+            // Use the new service method
+            $this->pokemonAssignmentService->transferPokemon($pokemon, $newTrainer);
+            
+            return response()->json([
+                'message' => 'Pokemon transferred successfully'
+            ]);
+        } catch (PokemonAssignmentException $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Failed to transfer pokemon: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Failed to transfer pokemon'
+            ], 500);
+        }
     }
 }
