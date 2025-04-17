@@ -103,14 +103,15 @@ class RankingServiceTest extends TestCase
 
     public function test_it_can_get_trainers_with_similar_points()
     {
-        // Arrange
-        $ash = Trainer::where('name', 'Ash')->first();
+       // Arrange
+    $ash = Trainer::where('name', 'Ash')->first();
 
-        // Act
-        $similarTrainers = $this->rankingService->getTrainersWithSimilarPoints($ash, 30);
+    // Act
+    $similarTrainers = $this->rankingService->getTrainersWithSimilarPoints($ash, 25);
 
-        // Assert
-        $this->assertCount(1, $similarTrainers);
-        $this->assertEquals('Brock', $similarTrainers->first()->name); // Brock has 120 points, which is within 30 of Ash's 100
+    // Assert
+    $this->assertCount(2, $similarTrainers);
+    $this->assertContains('Brock', $similarTrainers->pluck('name'));
+    $this->assertContains('May', $similarTrainers->pluck('name'));
     }
 }
