@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\TrainerController;
 use App\Http\Controllers\API\PokemonController;
 use App\Http\Controllers\API\BattleController;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,8 @@ use App\Http\Controllers\API\BattleController;
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])
+    ->middleware(['throttle']);
 
 // Public routes (no authentication required)
 Route::get('/trainers/ranking', [TrainerController::class, 'ranking']);
@@ -32,6 +35,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     
     // Routes accessible to any authenticated user
+    Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
     Route::get('/pokemons', [PokemonController::class, 'index']);
     Route::get('/pokemons/available', [PokemonController::class, 'available']);
     Route::get('/pokemons/{pokemon}', [PokemonController::class, 'show']);
@@ -41,7 +45,7 @@ Route::middleware('auth:api')->group(function () {
     // Trainer role routes
     Route::middleware('role:trainer')->group(function () {
         // Trainer-specific routes
-        Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
+        //Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
         Route::post('/battles', [BattleController::class, 'store']);
         
         // Pokemon assignment routes (trainers can modify their own pokemons)

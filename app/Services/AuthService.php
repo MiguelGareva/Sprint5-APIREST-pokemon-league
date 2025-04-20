@@ -16,39 +16,39 @@ class AuthService
      * @return array
      */
     public function register(array $data): array
-    {
-        // Create the user
-        $user = User::create([
+{
+    // Create the user
+    $user = User::create([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => Hash::make($data['password']),
+    ]);
+
+    // Assign role (default to trainer if not specified)
+    $role = $data['role'] ?? 'trainer';
+    $user->assignRole($role);
+
+    // Create trainer for users with trainer role
+    if ($role === 'trainer') {
+        Trainer::create([
+            'user_id' => $user->id,
             'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'points' => 0,
         ]);
-
-        // Assign role (default to trainer if not specified)
-        $role = $data['role'] ?? 'trainer';
-        $user->assignRole($role);
-
-        // Create trainer for users with trainer role
-        if ($role === 'trainer') {
-            Trainer::create([
-                'user_id' => $user->id,
-                'name' => $data['name'],
-                'points' => 0,
-            ]);
-        }
-
-        // Generate token - handle test environment
-        if (app()->environment('testing')) {
-            // In test environment, return a fake token
-            $token = 'fake-token-for-testing';
-        } else {
-            // In production, use Passport token generation
-            $token = $user->createToken('auth_token')->accessToken;
-        }
-
-        return [
-            'user' => $user,
-            'token' => $token
-        ];
     }
+
+    // Método simplificado: generar token directamente sin OAuth
+    if (app()->environment('testing')) {
+        $token = 'fake-token-for-testing';
+    } else {
+        // Generar token personal directamente
+        $tokenResult = $user->createToken('auth_token');
+        $token = $tokenResult->accessToken;
+    }
+
+    return [
+        'user' => $user,
+        'token' => $token
+    ];
+}
 }
