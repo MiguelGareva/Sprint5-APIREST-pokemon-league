@@ -215,10 +215,30 @@ class BattleService
         // Get stats from the json field
         $stats = $pokemon->stats;
         
+        // Ensure stats is in the correct format for array_sum
+        if (is_string($stats)) {
+            $stats = json_decode($stats, true);
+        } elseif (is_object($stats)) {
+            $stats = (array) $stats;
+        }
+        
+        // Check if stats is still not an array
+        if (!is_array($stats)) {
+            // Log for debugging
+            \Log::warning('Pokemon stats not in expected format', [
+                'pokemon_id' => $pokemon->id,
+                'stats_type' => gettype($stats),
+                'stats_value' => $stats
+            ]);
+            
+            // Return a default value or 0 to avoid error
+            return 0;
+        }
+        
         // Sum up all stats
         $statSum = array_sum($stats);
         
-        // Use the original formula (similar to existing implementation)
+        // Use the original formula
         return $statSum * $pokemon->level / 10;
     }
 }

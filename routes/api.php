@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\TrainerController;
 use App\Http\Controllers\API\PokemonController;
 use App\Http\Controllers\API\BattleController;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,10 +22,11 @@ use App\Http\Controllers\API\BattleController;
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])
+    ->middleware(['throttle']);
 
 // Public routes (no authentication required)
 Route::get('/trainers/ranking', [TrainerController::class, 'ranking']);
-
 // Protected routes that require authentication
 Route::middleware('auth:api')->group(function () {
     // Authentication routes
@@ -32,17 +34,18 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     
     // Routes accessible to any authenticated user
+    Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
     Route::get('/pokemons', [PokemonController::class, 'index']);
-    Route::get('/pokemons/available', [PokemonController::class, 'available']);
-    Route::get('/pokemons/{pokemon}', [PokemonController::class, 'show']);
+    Route::get('/pokemon-list-available', [PokemonController::class, 'listAvailablePokemons']);
+    Route::get('/pokemons/{pokemon}', [PokemonController::class, 'show'])->where('pokemon', '[0-9]+');
     Route::get('/battles', [BattleController::class, 'index']);
     Route::get('/battles/{battle}', [BattleController::class, 'show']);
-    
+    Route::post('/battles', [BattleController::class, 'store']);
     // Trainer role routes
     Route::middleware('role:trainer')->group(function () {
         // Trainer-specific routes
-        Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
-        Route::post('/battles', [BattleController::class, 'store']);
+        //Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
+        
         
         // Pokemon assignment routes (trainers can modify their own pokemons)
         Route::post('/pokemons/{pokemon}/trainers/{trainer}', [PokemonController::class, 'assignToTrainer']);
