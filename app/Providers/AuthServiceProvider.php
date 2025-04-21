@@ -23,14 +23,12 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
-    
-        // Configure Passport
+
+        
+        
+        // El resto de configuraciones actuales
         Passport::hashClientSecrets();
-        
-        // Agregar estas líneas
         Passport::enablePasswordGrant();
-        
-        // Configuración existente
         Passport::tokensExpireIn(now()->addDays(15));
         Passport::refreshTokensExpireIn(now()->addDays(30));
         Passport::personalAccessTokensExpireIn(now()->addMonths(6));

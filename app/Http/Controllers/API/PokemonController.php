@@ -67,15 +67,20 @@ class PokemonController extends Controller
     /**
      * Display a listing of available pokemons (without trainer).
      */
-    public function available()
+    public function listAvailablePokemons()
     {
-        $pokemons = $this->pokemonAssignmentService->getAvailablePokemons();
-
-        return response()->json([
-            'data' => $pokemons
-        ]);
+        try {
+            $pokemons = Pokemon::whereNull('trainer_id')->get();
+            
+            return response()->json([
+                'data' => $pokemons
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-
     /**
      * Store a newly created pokemon in storage.
      */

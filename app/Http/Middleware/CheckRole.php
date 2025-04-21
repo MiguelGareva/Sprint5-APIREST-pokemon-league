@@ -15,12 +15,19 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, $role): Response
     {
-        if (!$request->user() || !$request->user()->hasRole($role)){
+        if (!$request->user()) {
             return response()->json([
                 'message' => 'You do not have permission to access this resource'
             ], 403);
         }
-
-    return $next($request);
+    
+        // Permitir acceso si el usuario es admin o tiene el rol específico
+        if ($request->user()->hasRole('admin') || $request->user()->hasRole($role)) {
+            return $next($request);
+        }
+    
+        return response()->json([
+            'message' => 'You do not have permission to access this resource'
+        ], 403);
     }
 }

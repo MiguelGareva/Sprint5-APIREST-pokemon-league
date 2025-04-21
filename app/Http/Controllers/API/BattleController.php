@@ -54,6 +54,11 @@ class BattleController extends Controller
      */
     public function store(BattleRequest $request)
     {
+        \Log::info('Store battle method called', [
+            'user' => auth()->user(),
+            'request_data' => $request->all()
+        ]);
+        
         try {
             $battle = $this->battleService->createBattle($request->validated());
             
