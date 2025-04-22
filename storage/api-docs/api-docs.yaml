@@ -1,0 +1,1638 @@
+openapi: 3.0.3
+info:
+  title: Pokémon League API
+  description: |-
+    This is the API documentation for the Pokémon League API. This RESTful API allows management of trainers, Pokémon, and battles within a competitive Pokémon league environment. The system tracks trainer rankings based on battle outcomes and provides role-based access to various functionalities.
+    
+    ## Authentication
+    This API uses OAuth2 with Laravel Passport for authentication. To access protected endpoints, include a bearer token in the Authorization header:
+    
+    ```
+    Authorization: Bearer YOUR_TOKEN
+    ```
+    
+    ## Roles and Permissions
+    The API implements role-based access control with the following roles:
+    - **admin**: Full system access
+    - **trainer**: Limited access to their own resources
+    - **guest**: Access only to public information
+  version: 1.0.0
+  contact:
+    email: your-email@example.com
+servers:
+  - url: http://localhost:8000/api
+    description: Local Development Server
+  - url: https://api.pokemon-league.com
+    description: Production Server
+
+tags:
+  - name: authentication
+    description: Authentication operations
+  - name: trainers
+    description: Operations related to trainers
+  - name: pokemons
+    description: Operations related to pokemons
+  - name: battles
+    description: Operations related to battles
+  - name: ranking
+    description: Operations related to trainer rankings and statistics
+
+paths:
+  /user:
+    get:
+      tags:
+        - authentication
+      summary: Get authenticated user data
+      description: Retrieve current user information with roles and trainer data
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithDetails'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /register:
+    post:
+      tags:
+        - authentication
+      summary: Register a new trainer
+      description: Creates a new user account with trainer role
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                  example: "Ash Ketchum"
+                email:
+                  type: string
+                  format: email
+                  example: "ash.ketchum@pokemon.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '201':
+          description: Successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User successfully registered"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  access_token:
+                    type: string
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /login:
+    post:
+      tags:
+        - authentication
+      summary: Log in to the system
+      description: Authenticate a user and get access token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "ash.ketchum@pokemon.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully logged in"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  access_token:
+                    type: string
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+
+  /logout:
+    post:
+      tags:
+        - authentication
+      summary: Log out from the system
+      description: Revoke the current access token
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully logged out"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trainers:
+    get:
+      tags:
+        - trainers
+      summary: Get a list of trainers
+      description: Retrieves all trainers ordered by points
+      operationId: listTrainers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: A list of trainers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trainer'
+                  links:
+                    $ref: '#/components/schemas/PaginationLinks'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      tags:
+        - trainers
+      summary: Create a new trainer
+      description: Create a new trainer profile
+      operationId: createTrainer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: "Misty"
+                email:
+                  type: string
+                  format: email
+                  example: "misty@cerulean.gym"
+      responses:
+        '201':
+          description: Trainer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trainer'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+  
+  /trainers/{id}:
+    get:
+      tags:
+        - trainers
+      summary: Get trainer details
+      description: Retrieves details of a specific trainer including their pokemons
+      operationId: getTrainer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Trainer details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TrainerWithPokemons'
+                  rank:
+                    type: integer
+                    example: 5
+                    description: The trainer's current rank in the global ranking
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      tags:
+        - trainers
+      summary: Update a trainer
+      description: Updates a trainer's information
+      operationId: updateTrainer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: "Misty Waters"
+                email:
+                  type: string
+                  format: email
+                  example: "misty.waters@cerulean.gym"
+      responses:
+        '200':
+          description: Trainer updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trainer'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+    
+    delete:
+      tags:
+        - trainers
+      summary: Delete a trainer
+      description: Deletes a trainer profile
+      operationId: deleteTrainer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Trainer deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /trainers/ranking:
+    get:
+      tags:
+        - ranking
+      summary: Get trainer rankings
+      description: Retrieves all trainers ordered by points (public endpoint)
+      operationId: getTrainerRankings
+      responses:
+        '200':
+          description: List of trainers by ranking
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrainerRanking'
+  
+  /pokemons:
+    get:
+      tags:
+        - pokemons
+      summary: Get a list of pokemons
+      description: Retrieves all pokemons with optional filters
+      operationId: listPokemons
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Filter by pokemon type
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by status (available/captured)
+          required: false
+          schema:
+            type: string
+            enum: [available, captured]
+        - name: search
+          in: query
+          description: Search term for pokemon name
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: A list of pokemons
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pokemon'
+                  links:
+                    $ref: '#/components/schemas/PaginationLinks'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      tags:
+        - pokemons
+      summary: Create a new pokemon
+      description: Create a new pokemon with optional trainer assignment
+      operationId: createPokemon
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+                - level
+                - stats
+              properties:
+                name:
+                  type: string
+                  example: "Pikachu"
+                type:
+                  type: string
+                  example: "Electric"
+                level:
+                  type: integer
+                  example: 25
+                stats:
+                  type: object
+                  properties:
+                    hp:
+                      type: integer
+                      example: 35
+                    attack:
+                      type: integer
+                      example: 55
+                    defense:
+                      type: integer
+                      example: 40
+                    speed:
+                      type: integer
+                      example: 90
+                trainer_id:
+                  type: integer
+                  example: 1
+                  nullable: true
+      responses:
+        '201':
+          description: Pokemon created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+  
+  /pokemon-list-available:
+    get:
+      tags:
+        - pokemons
+      summary: Get available pokemons
+      description: Retrieves all pokemons that are not assigned to any trainer
+      operationId: listAvailablePokemons
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: A list of available pokemons
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pokemon'
+                  links:
+                    $ref: '#/components/schemas/PaginationLinks'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /pokemons/{id}:
+    get:
+      tags:
+        - pokemons
+      summary: Get pokemon details
+      description: Retrieves details of a specific pokemon
+      operationId: getPokemon
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Pokemon ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pokemon details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Pokemon not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      tags:
+        - pokemons
+      summary: Update a pokemon
+      description: Updates a pokemon's information
+      operationId: updatePokemon
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Pokemon ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - level
+              properties:
+                level:
+                  type: integer
+                  example: 30
+                trainer_id:
+                  type: integer
+                  example: 2
+                  nullable: true
+      responses:
+        '200':
+          description: Pokemon updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Pokemon not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+  
+  /pokemons/{id}/trainers/{trainer_id}:
+    post:
+      tags:
+        - pokemons
+      summary: Assign pokemon to trainer
+      description: Assigns a pokemon to a specific trainer
+      operationId: assignPokemonToTrainer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Pokemon ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: trainer_id
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pokemon assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Pokemon or trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+    
+    delete:
+      tags:
+        - pokemons
+      summary: Release pokemon from trainer
+      description: Removes the trainer assignment from a pokemon
+      operationId: releasePokemon
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Pokemon ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: trainer_id
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pokemon released successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Pokemon or trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /battles:
+    get:
+      tags:
+        - battles
+      summary: Get a list of battles
+      description: Retrieves all battles ordered by date
+      operationId: listBattles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: A list of battles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Battle'
+                  links:
+                    $ref: '#/components/schemas/PaginationLinks'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      tags:
+        - battles
+      summary: Create a new battle
+      description: Create and perform a new battle between trainers
+      operationId: createBattle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trainer1_id
+                - trainer2_id
+                - date
+              properties:
+                trainer1_id:
+                  type: integer
+                  example: 1
+                trainer2_id:
+                  type: integer
+                  example: 2
+                date:
+                  type: string
+                  format: date-time
+                  example: "2025-04-20T14:30:00Z"
+      responses:
+        '201':
+          description: Battle created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Battle'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+  
+  /battles/{id}:
+    get:
+      tags:
+        - battles
+      summary: Get battle details
+      description: Retrieves details of a specific battle with trainers
+      operationId: getBattle
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Battle ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Battle details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BattleWithTrainers'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Battle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      tags:
+        - battles
+      summary: Delete a battle
+      description: Deletes a battle and updates trainer points accordingly
+      operationId: deleteBattle
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Battle ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Battle deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Battle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trainers/top/{count}:
+    get:
+      tags:
+        - ranking
+      summary: Get top N trainers
+      description: Retrieves the top N trainers by points
+      operationId: topTrainers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: count
+          in: path
+          description: Number of top trainers to retrieve (between 1 and 50)
+          required: true
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Top trainers list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrainerRanking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trainers/{trainer}/similar/{range}:
+    get:
+      tags:
+        - ranking
+      summary: Get trainers with similar points
+      description: Retrieves trainers with points similar to the specified trainer
+      operationId: similarTrainers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trainer
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: range
+          in: path
+          description: Point range to consider (between 1 and 100)
+          required: true
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: List of similar trainers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrainerRanking'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trainers/stats/monthly:
+    get:
+      tags:
+        - ranking
+      summary: Get monthly ranking statistics
+      description: Retrieves monthly statistics of trainer rankings
+      operationId: monthlyStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Monthly statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      months:
+                        type: array
+                        items:
+                          type: string
+                          example: "2025-04"
+                      top_trainers:
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/TrainerRanking'
+                      average_points:
+                        type: object
+                        additionalProperties:
+                          type: number
+                          format: float
+                          example: 120.5
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  /trainers/{trainer}/points:
+    post:
+      tags:
+        - trainers
+      summary: Update trainer points
+      description: Update a trainer's points (admin only)
+      operationId: updatePoints
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trainer
+          in: path
+          description: Trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - points_change
+              properties:
+                points_change:
+                  type: integer
+                  example: 25
+                  description: The amount to add/subtract from trainer's points
+      responses:
+        '200':
+          description: Points updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Trainer points updated successfully"
+                  trainer:
+                    $ref: '#/components/schemas/Trainer'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden (non-admin user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  /battles/simulate:
+    post:
+      tags:
+        - battles
+      summary: Simulate a battle
+      description: Simulate a battle between two trainers without saving results
+      operationId: simulateBattle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trainer1_id
+                - trainer2_id
+              properties:
+                trainer1_id:
+                  type: integer
+                  example: 1
+                trainer2_id:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Battle simulation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      winner:
+                        $ref: '#/components/schemas/Trainer'
+                        nullable: true
+                      loser:
+                        $ref: '#/components/schemas/Trainer'
+                        nullable: true
+                      points_awarded:
+                        type: integer
+                        example: 10
+                      details:
+                        type: string
+                        example: "Battle between Team A and Team B..."
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+  /pokemons/{pokemon}/transfer/{trainer}:
+    post:
+      tags:
+        - pokemons
+      summary: Transfer pokemon to another trainer
+      description: Transfer a pokemon from its current trainer to another trainer
+      operationId: transferPokemon
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pokemon
+          in: path
+          description: Pokemon ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: trainer
+          in: path
+          description: New trainer ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pokemon transferred successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pokemon transferred successfully"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Pokemon or trainer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Ash Ketchum"
+        email:
+          type: string
+          format: email
+          example: "ash.ketchum@pokemon.com"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    Trainer:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Ash Ketchum"
+        email:
+          type: string
+          format: email
+          example: "ash.ketchum@pokemon.com"
+        points:
+          type: integer
+          example: 120
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    TrainerWithPokemons:
+      allOf:
+        - $ref: '#/components/schemas/Trainer'
+        - type: object
+          properties:
+            pokemons:
+              type: array
+              items:
+                $ref: '#/components/schemas/Pokemon'
+    
+    TrainerRanking:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Ash Ketchum"
+        points:
+          type: integer
+          example: 120
+        rank:
+          type: integer
+          example: 1
+    
+    Pokemon:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Pikachu"
+        type:
+          type: string
+          example: "Electric"
+        level:
+          type: integer
+          example: 25
+        stats:
+          type: object
+          properties:
+            hp:
+              type: integer
+              example: 35
+            attack:
+              type: integer
+              example: 55
+            defense:
+              type: integer
+              example: 40
+            speed:
+              type: integer
+              example: 90
+        trainer_id:
+          type: integer
+          format: int64
+          example: 1
+          nullable: true
+        trainer:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+            name:
+              type: string
+              example: "Ash Ketchum"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    Battle:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        trainer1_id:
+          type: integer
+          format: int64
+          example: 1
+        trainer2_id:
+          type: integer
+          format: int64
+          example: 2
+        winner_id:
+          type: integer
+          format: int64
+          example: 1
+          nullable: true
+        points_awarded:
+          type: integer
+          example: 10
+        date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    BattleWithTrainers:
+      allOf:
+        - $ref: '#/components/schemas/Battle'
+        - type: object
+          properties:
+            trainer1:
+              $ref: '#/components/schemas/Trainer'
+            trainer2:
+              $ref: '#/components/schemas/Trainer'
+            winner:
+              $ref: '#/components/schemas/Trainer'
+              nullable: true
+    
+    PaginationLinks:
+      type: object
+      properties:
+        first:
+          type: string
+          example: "http://localhost:8000/api/trainers?page=1"
+        last:
+          type: string
+          example: "http://localhost:8000/api/trainers?page=5"
+        prev:
+          type: string
+          nullable: true
+          example: null
+        next:
+          type: string
+          example: "http://localhost:8000/api/trainers?page=2"
+    
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        from:
+          type: integer
+          example: 1
+        last_page:
+          type: integer
+          example: 5
+        path:
+          type: string
+          example: "http://localhost:8000/api/trainers"
+        per_page:
+          type: integer
+          example: 15
+        to:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 65
+    
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "The requested resource was not found."
+    
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            name:
+              - "The name field is required."
+            email:
+              - "The email must be a valid email address."
