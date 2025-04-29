@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Registrar el middleware de role
         $middleware->alias([
+            'token.auth' => \App\Http\Middleware\TokenAuthMiddleware::class,
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);
     })

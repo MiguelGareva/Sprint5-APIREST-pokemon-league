@@ -67,7 +67,13 @@ class AuthController extends Controller
      * @param  \App\Http\Requests\LoginRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function login(LoginRequest $request)
+    /**
+ * Login user and create token
+ *
+ * @param  \App\Http\Requests\LoginRequest  $request
+ * @return \Illuminate\Http\Response
+ */
+public function login(LoginRequest $request)
 {
     if (!Auth::attempt($request->validated())) {
         return response()->json([
@@ -75,23 +81,26 @@ class AuthController extends Controller
         ], 401);
     }
 
-    $user = User::where('email', $request->email)->first();
-    
     try {
-        // Eliminar tokens existentes para evitar problemas
+        $user = User::where('email', $request->email)->first();
+        
+        // Cargar roles para tenerlos disponibles en la respuesta
+        $user->load('roles');
+        
+        // Revocar tokens anteriores (opcional)
         DB::table('oauth_access_tokens')
             ->where('user_id', $user->id)
             ->update(['revoked' => true]);
         
-        // Generar un token en el formato correcto para Passport
+        // Generar un nuevo token
         $token = Str::random(80);
-        $tokenId = Str::uuid()->toString();
+        $tokenId = hash('sha256', $token);
         
-        // Insertar el token en la base de datos en el formato que Passport espera
+        // Insertar el token en la base de datos
         DB::table('oauth_access_tokens')->insert([
             'id' => $tokenId,
             'user_id' => $user->id,
-            'client_id' => DB::table('oauth_clients')->where('password_client', 1)->value('id'),
+            'client_id' => DB::table('oauth_clients')->where('password_client', 1)->value('id') ?? 1,
             'name' => 'API Authentication',
             'scopes' => '["*"]',
             'revoked' => false,
@@ -99,24 +108,6 @@ class AuthController extends Controller
             'updated_at' => now(),
             'expires_at' => now()->addDays(15),
         ]);
-        
-        // IMPORTANTE: El token en la base de datos debe ser el hash del token que damos al cliente
-        // Passport verifica tokens comparando el hash, no el token en texto plano
-        
-        // Buscar el token que acabamos de insertar
-        $accessToken = DB::table('oauth_access_tokens')
-            ->where('id', $tokenId)
-            ->first();
-            
-        // Si no podemos encontrar el token, algo salió mal
-        if (!$accessToken) {
-            throw new \Exception('Failed to create access token');
-        }
-        
-        // Actualizar el token con el hash correcto
-        DB::table('oauth_access_tokens')
-            ->where('id', $tokenId)
-            ->update(['id' => hash('sha256', $token)]);
         
         return response()->json([
             'data' => $user,
@@ -126,7 +117,6 @@ class AuthController extends Controller
     } catch (\Exception $e) {
         return response()->json([
             'message' => 'Error creating token: ' . $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
         ], 500);
     }
 }

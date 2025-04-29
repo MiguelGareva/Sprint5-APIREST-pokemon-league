@@ -34,8 +34,8 @@ class TokenAuthMiddleware
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // Cargar el usuario
-        $user = User::find($accessToken->user_id);
+        // Cargar el usuario con sus roles
+        $user = User::with('roles')->find($accessToken->user_id);
         
         if (!$user) {
             return response()->json(['message' => 'User not found.'], 401);
@@ -43,6 +43,10 @@ class TokenAuthMiddleware
 
         // Autenticar al usuario manualmente
         Auth::login($user);
+        
+        // Para debugging (opcional) - descomentar si necesitas verificar roles
+        // \Log::info('User authenticated: ' . $user->name);
+        // \Log::info('User roles: ' . $user->roles->pluck('name'));
         
         return $next($request);
     }

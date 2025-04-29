@@ -44,8 +44,11 @@ Route::middleware('token.auth')->group(function () {
     // Trainer role routes
     Route::middleware('role:trainer')->group(function () {
         // Trainer-specific routes
-        //Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
-        
+        Route::get('/trainers/{trainer}', [TrainerController::class, 'show'])->where('trainer', '[0-9]+');
+        Route::get('/trainers', [TrainerController::class, 'index']);
+        Route::post('/trainers', [TrainerController::class, 'store']);
+        Route::put('/trainers/{trainer}', [TrainerController::class, 'update']);
+        Route::delete('/trainers/{trainer}', [TrainerController::class, 'destroy']);
         
         // Pokemon assignment routes (trainers can modify their own pokemons)
         Route::post('/pokemons/{pokemon}/trainers/{trainer}', [PokemonController::class, 'assignToTrainer']);
@@ -58,11 +61,6 @@ Route::middleware('token.auth')->group(function () {
     
     // Admin role routes
     Route::middleware('role:admin')->group(function () {
-        // Admin trainer management
-        Route::get('/trainers', [TrainerController::class, 'index']);
-        Route::post('/trainers', [TrainerController::class, 'store']);
-        Route::put('/trainers/{trainer}', [TrainerController::class, 'update']);
-        Route::delete('/trainers/{trainer}', [TrainerController::class, 'destroy']);
         
         // Admin pokemon management
         Route::post('/pokemons', [PokemonController::class, 'store']);
