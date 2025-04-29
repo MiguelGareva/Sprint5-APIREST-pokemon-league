@@ -17,8 +17,8 @@ class AuthService
      */
     public function register(array $data): array
 {
-    // Create the user
-    $user = User::create([
+     // Create the user
+     $user = User::create([
         'name' => $data['name'],
         'email' => $data['email'],
         'password' => Hash::make($data['password']),
@@ -37,18 +37,9 @@ class AuthService
         ]);
     }
 
-    // Método simplificado: generar token directamente sin OAuth
-    if (app()->environment('testing')) {
-        $token = 'fake-token-for-testing';
-    } else {
-        // Generar token personal directamente
-        $tokenResult = $user->createToken('auth_token');
-        $token = $tokenResult->accessToken;
-    }
-
     return [
         'user' => $user,
-        'token' => $token
+        //'token' => null // O simplemente no incluirlo
     ];
 }
 }

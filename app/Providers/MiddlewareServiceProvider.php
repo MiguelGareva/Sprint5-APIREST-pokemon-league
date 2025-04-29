@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\TokenAuthMiddleware;
 
 class MiddlewareServiceProvider extends ServiceProvider
 {
@@ -22,5 +23,6 @@ class MiddlewareServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Route::aliasMiddleware('role', CheckRole::class);
+        Route::aliasMiddleware('token.auth', TokenAuthMiddleware::class);
     }
 }

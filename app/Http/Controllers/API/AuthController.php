@@ -5,10 +5,17 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
+
 
 class AuthController extends Controller
 {
@@ -43,8 +50,8 @@ class AuthController extends Controller
             
             return response()->json([
                 'message' => 'User successfully registered',
-                'user' => $result['user'],
-                'access_token' => $result['token'],
+                'user' => $result['user']
+                // No incluimos el token aquí
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -60,41 +67,59 @@ class AuthController extends Controller
      * @param  \App\Http\Requests\LoginRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function login(LoginRequest $request)
-    {
-        try {
-            $credentials = $request->only('email', 'password');
-
-            if (!Auth::attempt($credentials)) {
-                return response()->json([
-                    'message' => 'Invalid credentials'
-                ], 401);
-            }
-
-            $user = $request->user();
-            
-            // For testing environment, use a fake token
-            $token = app()->environment('testing') 
-                ? 'fake-token-for-testing' 
-                : $user->createToken('auth_token')->accessToken;
-
-            return response()->json([
-                'message' => 'Successfully logged in',
-                'user' => $user,
-                'access_token' => $token,
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred during login',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+    /**
+ * Login user and create token
+ *
+ * @param  \App\Http\Requests\LoginRequest  $request
+ * @return \Illuminate\Http\Response
+ */
+public function login(LoginRequest $request)
+{
+    if (!Auth::attempt($request->validated())) {
+        return response()->json([
+            'message' => 'Invalid credentials',
+        ], 401);
     }
+
+    try {
+        $user = User::where('email', $request->email)->first();
+        
+        // Cargar roles para tenerlos disponibles en la respuesta
+        $user->load('roles');
+        
+        // Revocar tokens anteriores (opcional)
+        DB::table('oauth_access_tokens')
+            ->where('user_id', $user->id)
+            ->update(['revoked' => true]);
+        
+        // Generar un nuevo token
+        $token = Str::random(80);
+        $tokenId = hash('sha256', $token);
+        
+        // Insertar el token en la base de datos
+        DB::table('oauth_access_tokens')->insert([
+            'id' => $tokenId,
+            'user_id' => $user->id,
+            'client_id' => DB::table('oauth_clients')->where('password_client', 1)->value('id') ?? 1,
+            'name' => 'API Authentication',
+            'scopes' => '["*"]',
+            'revoked' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+            'expires_at' => now()->addDays(15),
+        ]);
+        
+        return response()->json([
+            'data' => $user,
+            'token' => $token,
+        ], 200);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error creating token: ' . $e->getMessage(),
+        ], 500);
+    }
+}
 
     /**
      * Logout user (Revoke the token)

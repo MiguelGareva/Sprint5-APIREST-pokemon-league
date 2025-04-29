@@ -23,11 +23,24 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Si es una solicitud de token OAuth, cambia las reglas
+        if ($this->is('oauth/token')) {
+            return [
+                'username' => 'required|string|email',
+                'password' => 'required|string',
+                'grant_type' => 'required|in:password',
+                'client_id' => 'required',
+                'client_secret' => 'required'
+            ];
+        }
+
+        // Reglas para login estándar
         return [
             'email' => 'required|string|email',
             'password' => 'required|string',
         ];
     }
+
     /**
      * Handle a failed validation attempt.
      *

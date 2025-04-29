@@ -15,6 +15,7 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, $role): Response
     {
+        // Asegurarse de que el usuario está autenticado
         if (!$request->user()) {
             return response()->json([
                 'message' => 'You do not have permission to access this resource'
