@@ -5,10 +5,17 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
+
 
 class AuthController extends Controller
 {
@@ -43,8 +50,8 @@ class AuthController extends Controller
             
             return response()->json([
                 'message' => 'User successfully registered',
-                'user' => $result['user'],
-                'access_token' => $result['token'],
+                'user' => $result['user']
+                // No incluimos el token aquí
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -61,40 +68,68 @@ class AuthController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function login(LoginRequest $request)
-    {
-        try {
-            $credentials = $request->only('email', 'password');
-
-            if (!Auth::attempt($credentials)) {
-                return response()->json([
-                    'message' => 'Invalid credentials'
-                ], 401);
-            }
-
-            $user = $request->user();
-            
-            // For testing environment, use a fake token
-            $token = app()->environment('testing') 
-                ? 'fake-token-for-testing' 
-                : $user->createToken('auth_token')->accessToken;
-
-            return response()->json([
-                'message' => 'Successfully logged in',
-                'user' => $user,
-                'access_token' => $token,
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred during login',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+{
+    if (!Auth::attempt($request->validated())) {
+        return response()->json([
+            'message' => 'Invalid credentials',
+        ], 401);
     }
+
+    $user = User::where('email', $request->email)->first();
+    
+    try {
+        // Eliminar tokens existentes para evitar problemas
+        DB::table('oauth_access_tokens')
+            ->where('user_id', $user->id)
+            ->update(['revoked' => true]);
+        
+        // Generar un token en el formato correcto para Passport
+        $token = Str::random(80);
+        $tokenId = Str::uuid()->toString();
+        
+        // Insertar el token en la base de datos en el formato que Passport espera
+        DB::table('oauth_access_tokens')->insert([
+            'id' => $tokenId,
+            'user_id' => $user->id,
+            'client_id' => DB::table('oauth_clients')->where('password_client', 1)->value('id'),
+            'name' => 'API Authentication',
+            'scopes' => '["*"]',
+            'revoked' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+            'expires_at' => now()->addDays(15),
+        ]);
+        
+        // IMPORTANTE: El token en la base de datos debe ser el hash del token que damos al cliente
+        // Passport verifica tokens comparando el hash, no el token en texto plano
+        
+        // Buscar el token que acabamos de insertar
+        $accessToken = DB::table('oauth_access_tokens')
+            ->where('id', $tokenId)
+            ->first();
+            
+        // Si no podemos encontrar el token, algo salió mal
+        if (!$accessToken) {
+            throw new \Exception('Failed to create access token');
+        }
+        
+        // Actualizar el token con el hash correcto
+        DB::table('oauth_access_tokens')
+            ->where('id', $tokenId)
+            ->update(['id' => hash('sha256', $token)]);
+        
+        return response()->json([
+            'data' => $user,
+            'token' => $token,
+        ], 200);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error creating token: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ], 500);
+    }
+}
 
     /**
      * Logout user (Revoke the token)

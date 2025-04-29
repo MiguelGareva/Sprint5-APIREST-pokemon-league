@@ -21,16 +21,19 @@ class AuthServiceProvider extends ServiceProvider
      * Register any authentication / authorization services.
      */
     public function boot(): void
-    {
-        $this->registerPolicies();
-
-        
-        
-        // El resto de configuraciones actuales
-        Passport::hashClientSecrets();
-        Passport::enablePasswordGrant();
-        Passport::tokensExpireIn(now()->addDays(15));
-        Passport::refreshTokensExpireIn(now()->addDays(30));
-        Passport::personalAccessTokensExpireIn(now()->addMonths(6));
-    }
+{
+    $this->registerPolicies();
+    
+    // Asegúrate de que Passport pueda encontrar y validar tokens
+    Passport::tokensCan([
+        '*' => 'Access all API endpoints',
+    ]);
+    
+    // El resto de configuraciones actuales
+    Passport::hashClientSecrets();
+    Passport::enablePasswordGrant();
+    Passport::tokensExpireIn(now()->addDays(15));
+    Passport::refreshTokensExpireIn(now()->addDays(30));
+    Passport::personalAccessTokensExpireIn(now()->addMonths(6));
+}
 }

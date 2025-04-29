@@ -22,13 +22,13 @@ use Laravel\Passport\Http\Controllers\AccessTokenController;
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])
-    ->middleware(['throttle']);
+/*Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])
+    ->middleware(['throttle']);*/
 
 // Public routes (no authentication required)
 Route::get('/trainers/ranking', [TrainerController::class, 'ranking']);
 // Protected routes that require authentication
-Route::middleware('auth:api')->group(function () {
+Route::middleware('token.auth')->group(function () {
     // Authentication routes
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
