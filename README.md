@@ -212,4 +212,7 @@ vendor/bin/phpunit
 
 ## 📞 Contact
 
-For questions or support, please [open an issue](https://github.com/your-username/pokemon-league-api/issues) on the GitHub repository.
+
+=======
+For questions or support, please [open an issue](https://github.com/MiguelGareva/Sprint5-APIREST-pokemon-league/issues) on the GitHub repository.
+
